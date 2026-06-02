@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>Новый убыток — DTP24</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #1c1c1e;
+      --card:      #2c2c2e;
+      --input-bg:  #3a3a3c;
+      --border:    #48484a;
+      --text:      #ffffff;
+      --hint:      #8e8e93;
+      --blue:      #2481cc;
+      --blue-dark: #1a6aab;
+      --success:   #30d158;
+      --error:     #ff453a;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      min-height: 100vh;
+      padding: 16px;
+    }
+
+    .header {
+      text-align: center;
+      padding: 20px 0 24px;
+    }
+    .header-icon {
+      width: 56px;
+      height: 56px;
+      background: var(--blue);
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      margin: 0 auto 12px;
+    }
+    .header h1 {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
+    .header p {
+      font-size: 13px;
+      color: var(--hint);
+      margin-top: 4px;
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: 16px;
+      padding: 4px 0;
+      margin-bottom: 16px;
+    }
+
+    .field {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      position: relative;
+    }
+    .field:last-child { border-bottom: none; }
+
+    .field label {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--hint);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+
+    .field input,
+    .field select {
+      width: 100%;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--text);
+      font-size: 16px;
+      font-family: inherit;
+      padding: 0;
+      -webkit-appearance: none;
+    }
+    .field select {
+      cursor: pointer;
+    }
+    .field select option {
+      background: var(--card);
+      color: var(--text);
+    }
+    .field input::placeholder { color: var(--hint); }
+    .field input[type="date"]::-webkit-calendar-picker-indicator {
+      filter: invert(1);
+      opacity: 0.5;
+      cursor: pointer;
+    }
+
+    .field.error label { color: var(--error); }
+    .field.error { background: rgba(255, 69, 58, 0.08); border-radius: 8px; }
+
+    .btn {
+      width: 100%;
+      padding: 16px;
+      background: var(--blue);
+      color: #fff;
+      border: none;
+      border-radius: 14px;
+      font-size: 17px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+      margin-top: 8px;
+    }
+    .btn:active { background: var(--blue-dark); transform: scale(0.98); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    /* Успех */
+    .success-screen {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 60vh;
+      text-align: center;
+      gap: 16px;
+    }
+    .success-screen.show { display: flex; }
+    .success-icon {
+      width: 72px;
+      height: 72px;
+      background: rgba(48, 209, 88, 0.15);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 36px;
+    }
+    .success-screen h2 { font-size: 22px; font-weight: 700; }
+    .success-screen p { font-size: 15px; color: var(--hint); line-height: 1.4; }
+    .success-num {
+      font-size: 32px;
+      font-weight: 800;
+      color: var(--success);
+    }
+
+    /* Ошибка */
+    .error-msg {
+      display: none;
+      background: rgba(255, 69, 58, 0.12);
+      border: 1px solid rgba(255, 69, 58, 0.3);
+      border-radius: 10px;
+      padding: 12px 16px;
+      font-size: 14px;
+      color: var(--error);
+      margin-top: 8px;
+      line-height: 1.4;
+    }
+    .error-msg.show { display: block; }
+
+    .loader {
+      display: inline-block;
+      width: 18px;
+      height: 18px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+<!-- Форма -->
+<div id="formView">
+  <div class="header">
+    <div class="header-icon">🚗</div>
+    <h1>Новый убыток</h1>
+    <p>Заполните данные по ДТП</p>
+  </div>
+
+  <div class="card">
+    <div class="field" id="f-park">
+      <label>Парк</label>
+      <input type="text" id="park" placeholder="Название парка" autocomplete="off" />
+    </div>
+    <div class="field" id="f-brand">
+      <label>Марка ТС</label>
+      <input type="text" id="brand" placeholder="Например: Hyundai Solaris" autocomplete="off" />
+    </div>
+    <div class="field" id="f-grz">
+      <label>Гос. номер</label>
+      <input type="text" id="grz" placeholder="А123ВС799" autocomplete="off"
+             style="text-transform:uppercase" />
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="field" id="f-policy">
+      <label>Полис ОСАГО</label>
+      <input type="text" id="policy" placeholder="ХХХ 0000000000" autocomplete="off" />
+    </div>
+    <div class="field" id="f-date">
+      <label>Дата ДТП</label>
+      <input type="date" id="date_dtp" />
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="field" id="f-insurance">
+      <label>Страховая компания</label>
+      <select id="insurance">
+        <option value="">— Выберите СК —</option>
+        <option>ИНГОССТРАХ</option>
+        <option>РЕСО</option>
+        <option>СОГАЗ</option>
+        <option>АЛЬФА</option>
+        <option>ВСК</option>
+        <option>ОСК</option>
+        <option>РЕНЕССАНС</option>
+      </select>
+    </div>
+  </div>
+
+  <button class="btn" id="submitBtn" onclick="submitForm()">Записать в таблицу</button>
+  <div class="error-msg" id="errorMsg"></div>
+</div>
+
+<!-- Экран успеха -->
+<div class="success-screen" id="successView">
+  <div class="success-icon">✅</div>
+  <div class="success-num" id="successNum">#—</div>
+  <h2>Убыток записан!</h2>
+  <p id="successDetails"></p>
+</div>
+
+<script>
+  // Инициализация Telegram WebApp
+  const tg = window.Telegram.WebApp;
+  tg.ready();
+  tg.expand();
+
+  // Установить сегодняшнюю дату по умолчанию
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('date_dtp').value = today;
+
+  // URL вашей Яндекс Cloud Function (заполним позже)
+  const API_URL = 'ВАШ_URL_CLOUD_FUNCTION';
+
+  function validate() {
+    const fields = [
+      { id: 'park',      fid: 'f-park' },
+      { id: 'brand',     fid: 'f-brand' },
+      { id: 'grz',       fid: 'f-grz' },
+      { id: 'policy',    fid: 'f-policy' },
+      { id: 'date_dtp',  fid: 'f-date' },
+      { id: 'insurance', fid: 'f-insurance' },
+    ];
+    let ok = true;
+    fields.forEach(f => {
+      const el = document.getElementById(f.id);
+      const val = el.value.trim();
+      document.getElementById(f.fid).classList.toggle('error', !val);
+      if (!val) ok = false;
+    });
+    return ok;
+  }
+
+  async function submitForm() {
+    if (!validate()) {
+      showError('Заполните все поля, отмеченные красным.');
+      return;
+    }
+
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="loader"></span>Сохраняем...';
+    hideError();
+
+    const data = {
+      park:      document.getElementById('park').value.trim(),
+      brand:     document.getElementById('brand').value.trim(),
+      grz:       document.getElementById('grz').value.trim().toUpperCase(),
+      policy:    document.getElementById('policy').value.trim(),
+      date_dtp:  formatDate(document.getElementById('date_dtp').value),
+      insurance: document.getElementById('insurance').value,
+    };
+
+    try {
+      const resp = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+
+      if (!resp.ok) throw new Error(`Ошибка сервера: ${resp.status}`);
+      const result = await resp.json();
+
+      showSuccess(result.number, data);
+    } catch (e) {
+      btn.disabled = false;
+      btn.innerHTML = 'Записать в таблицу';
+      showError('Не удалось сохранить данные. Проверьте соединение и попробуйте снова.');
+      console.error(e);
+    }
+  }
+
+  function showSuccess(number, data) {
+    document.getElementById('formView').style.display = 'none';
+    const sv = document.getElementById('successView');
+    sv.classList.add('show');
+    document.getElementById('successNum').textContent = `#${number}`;
+    document.getElementById('successDetails').textContent =
+      `${data.park} · ${data.brand} · ${data.grz}\n${data.date_dtp} · ${data.insurance}`;
+    setTimeout(() => tg.close(), 2500);
+  }
+
+  function showError(msg) {
+    const el = document.getElementById('errorMsg');
+    el.textContent = msg;
+    el.classList.add('show');
+  }
+  function hideError() {
+    document.getElementById('errorMsg').classList.remove('show');
+  }
+
+  function formatDate(isoDate) {
+    if (!isoDate) return '';
+    const [y, m, d] = isoDate.split('-');
+    return `${d}.${m}.${y}`;
+  }
+</script>
+</body>
+</html>
