@@ -219,6 +219,7 @@
       policy:    document.getElementById('policy').value.trim(),
       date_dtp:  document.getElementById('date_dtp').value.trim(),
       insurance: document.getElementById('insurance').value,
+      user_id:   (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) ? tg.initDataUnsafe.user.id : null,
     };
 
     try {
@@ -243,18 +244,10 @@
     document.getElementById('successNum').textContent = '#' + number;
     document.getElementById('successDetails').textContent =
       data.park + ' · ' + data.brand + ' · ' + data.grz + '\n' + data.date_dtp + ' · ' + data.insurance;
-    // Отправляем все данные боту — он попросит фото
+    // Закрываем форму — бот получит уведомление через Cloud Function
     setTimeout(function() {
-      if (tg) tg.sendData(JSON.stringify({
-        number:    number,
-        park:      data.park,
-        brand:     data.brand,
-        grz:       data.grz,
-        policy:    data.policy,
-        date_dtp:  data.date_dtp,
-        insurance: data.insurance
-      }));
-    }, 1500);
+      if (tg) tg.close();
+    }, 2000);
   }
 
   function showError(msg) {
