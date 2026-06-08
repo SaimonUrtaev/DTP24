@@ -1,4 +1,5 @@
 import json
+import os
 from datetime import datetime
 import gspread
 from google.oauth2.service_account import Credentials
@@ -8,8 +9,8 @@ SCOPES = [
     "https://www.googleapis.com/auth/drive",
 ]
 
-SPREADSHEET_ID = "1pvo-P753yMpBTdVD__tWoSCSJbSwTTq9emnOG837KBo"
-SHEET_NAME = "Лист1"
+SPREADSHEET_ID = os.environ.get("SPREADSHEET_ID", "")
+SHEET_NAME     = os.environ.get("SHEET_NAME", "Лист1")
 
 CORS_HEADERS = {
     "Access-Control-Allow-Origin": "*",

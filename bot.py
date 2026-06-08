@@ -16,15 +16,13 @@ from telegram.ext import (
     Application, CommandHandler, CallbackQueryHandler,
     MessageHandler, filters, ContextTypes
 )
-from config import BOT_TOKEN, ALLOWED_USERS
+from config import BOT_TOKEN, ALLOWED_USERS, WEBAPP_URL
 
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     level=logging.INFO
 )
 logger = logging.getLogger(__name__)
-
-WEBAPP_URL = "https://SaimonUrtaev.github.io/DTP24/form.html"
 PHOTO_KEY  = "collecting_photos"
 LOSS_KEY   = "loss_data"
 
