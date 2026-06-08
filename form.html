@@ -60,15 +60,6 @@
     .field.error label { color: var(--error); }
     .field.error { background: rgba(255,69,58,0.08); border-radius: 8px; }
 
-    .photo-label {
-      display: flex; align-items: center; gap: 10px;
-      cursor: pointer; color: var(--blue); font-size: 15px; padding: 14px 16px;
-    }
-    .photo-label input { display: none; }
-    .photo-count { margin-left: auto; font-size: 13px; color: var(--hint); }
-    .photo-previews { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 16px 12px; }
-    .photo-previews img { width: 64px; height: 64px; object-fit: cover; border-radius: 8px; }
-
     .btn {
       width: 100%; padding: 16px; background: var(--blue); color: #fff;
       border: none; border-radius: 14px; font-size: 17px; font-weight: 600;
@@ -158,13 +149,12 @@
   </div>
 
   <div class="card">
-    <label class="photo-label">
-      <span>📎</span>
-      <span>Прикрепить фото</span>
-      <span class="photo-count" id="photoCount"></span>
-      <input type="file" id="photoInput" accept="image/*" multiple onchange="handlePhotos(this)" />
-    </label>
-    <div class="photo-previews" id="photoPreviews"></div>
+    <div class="field">
+      <label>Фото и документы</label>
+      <div style="font-size:14px; color:#8e8e93; padding: 2px 0;">
+        📎 После записи отправьте фото напрямую боту @DTP24_bot
+      </div>
+    </div>
   </div>
 
   <button class="btn" id="submitBtn" onclick="submitForm()">Записать в таблицу</button>
@@ -199,21 +189,6 @@
     String(now.getMonth()+1).padStart(2,'0') + '.' +
     now.getFullYear();
 
-  let selectedPhotos = [];
-
-  function handlePhotos(input) {
-    selectedPhotos = Array.from(input.files);
-    document.getElementById('photoCount').textContent =
-      selectedPhotos.length > 0 ? selectedPhotos.length + ' фото' : '';
-    const prev = document.getElementById('photoPreviews');
-    prev.innerHTML = '';
-    selectedPhotos.forEach(function(f) {
-      const img = document.createElement('img');
-      img.src = URL.createObjectURL(f);
-      prev.appendChild(img);
-    });
-  }
-
   function validate() {
     const fields = [
       { id: 'park', fid: 'f-park' }, { id: 'brand', fid: 'f-brand' },
@@ -244,7 +219,6 @@
       policy:    document.getElementById('policy').value.trim(),
       date_dtp:  document.getElementById('date_dtp').value.trim(),
       insurance: document.getElementById('insurance').value,
-      photos:    selectedPhotos.length,
     };
 
     try {
