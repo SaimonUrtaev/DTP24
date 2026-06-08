@@ -34,12 +34,10 @@ def format_new_row(sheet, row_num: int):
     range_notation = f"A{row_num}:AA{row_num}"
     sheet.format(range_notation, {
         "borders": {
-            "top":             {"style": "SOLID", "width": 1},
-            "bottom":          {"style": "SOLID", "width": 1},
-            "left":            {"style": "SOLID", "width": 1},
-            "right":           {"style": "SOLID", "width": 1},
-            "innerHorizontal": {"style": "SOLID", "width": 1},
-            "innerVertical":   {"style": "SOLID", "width": 1},
+            "top":    {"style": "SOLID", "width": 1},
+            "bottom": {"style": "SOLID", "width": 1},
+            "left":   {"style": "SOLID", "width": 1},
+            "right":  {"style": "SOLID", "width": 1},
         },
         "textFormat": {"fontSize": 10},
         "verticalAlignment": "MIDDLE",
