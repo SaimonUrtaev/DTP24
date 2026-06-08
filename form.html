@@ -243,9 +243,17 @@
     document.getElementById('successNum').textContent = '#' + number;
     document.getElementById('successDetails').textContent =
       data.park + ' · ' + data.brand + ' · ' + data.grz + '\n' + data.date_dtp + ' · ' + data.insurance;
-    // Уведомляем бота о номере убытка — он попросит фото
+    // Отправляем все данные боту — он попросит фото
     setTimeout(function() {
-      if (tg) tg.sendData(JSON.stringify({number: number}));
+      if (tg) tg.sendData(JSON.stringify({
+        number:    number,
+        park:      data.park,
+        brand:     data.brand,
+        grz:       data.grz,
+        policy:    data.policy,
+        date_dtp:  data.date_dtp,
+        insurance: data.insurance
+      }));
     }, 1500);
   }
 

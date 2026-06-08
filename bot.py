@@ -7,7 +7,11 @@ WebApp форма + сбор фото после записи
 import json
 import logging
 import functools
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
+from telegram import (
+    Update, InlineKeyboardButton, InlineKeyboardMarkup,
+    KeyboardButton, ReplyKeyboardMarkup, WebAppInfo,
+    InputMediaPhoto, InputMediaDocument
+)
 from telegram.ext import (
     Application, CommandHandler, CallbackQueryHandler,
     MessageHandler, filters, ContextTypes
@@ -22,10 +26,10 @@ logger = logging.getLogger(__name__)
 
 WEBAPP_URL = "https://SaimonUrtaev.github.io/DTP24/form.html"
 PHOTO_KEY  = "collecting_photos"
-LOSS_KEY   = "loss_number"
+LOSS_KEY   = "loss_data"
 
 
-# ── Авторизация ─────────────────────────────────────────────────────────────
+# ── Авторизация ──────────────────────────────────────────────────────────────
 def auth_required(func):
     @functools.wraps(func)
     async def wrapper(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
@@ -42,13 +46,12 @@ def auth_required(func):
 # ── /start ───────────────────────────────────────────────────────────────────
 @auth_required
 async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-    keyboard = [[
-        InlineKeyboardButton("📋 Новый убыток", web_app=WebAppInfo(url=WEBAPP_URL))
-    ]]
+    # KeyboardButton — обязательно для tg.sendData() в WebApp
+    keyboard = [[KeyboardButton("📋 Новый убыток", web_app=WebAppInfo(url=WEBAPP_URL))]]
     await update.message.reply_text(
         f"Привет, {update.effective_user.first_name}! 👋\n\n"
         "Нажмите кнопку чтобы открыть форму убытка.",
-        reply_markup=InlineKeyboardMarkup(keyboard),
+        reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True),
     )
 
 
@@ -62,12 +65,12 @@ async def web_app_data(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         return
 
     ctx.user_data[PHOTO_KEY] = True
-    ctx.user_data[LOSS_KEY]  = number
+    ctx.user_data[LOSS_KEY]  = data
     ctx.user_data["photos"]  = []
 
     keyboard = [[InlineKeyboardButton("✅ Готово, фото не нужны", callback_data="photos_done")]]
     await update.message.reply_text(
-        f"✅ *Убыток №{number} записан в таблицу!*\n\n"
+        f"✅ *Убыток №{number} записан!*\n\n"
         f"📎 Отправьте фото: место ДТП, полис, СТС, материалы.\n"
         f"Можно несколько. Когда закончите — нажмите кнопку.",
         parse_mode="Markdown",
@@ -87,7 +90,7 @@ async def receive_photo(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if update.message.photo:
         photos.append(("photo", update.message.photo[-1].file_id))
     elif update.message.document:
-        photos.append(("doc", update.message.document.file_id, update.message.document.file_name))
+        photos.append(("doc", update.message.document.file_id))
 
     keyboard = [[InlineKeyboardButton(f"✅ Готово ({len(photos)} фото)", callback_data="photos_done")]]
     await update.message.reply_text(
@@ -97,30 +100,48 @@ async def receive_photo(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     )
 
 
-# ── Завершение сбора фото ────────────────────────────────────────────────────
+# ── Завершение — текст + фото одним блоком ───────────────────────────────────
 async def photos_done(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
 
     photos = ctx.user_data.get("photos", [])
-    number = ctx.user_data.get(LOSS_KEY, "?")
+    d      = ctx.user_data.get(LOSS_KEY, {})
+    number = d.get("number", "?")
+    chat_id = update.effective_chat.id
 
+    # Текстовая карточка убытка
+    text = (
+        f"📋 *Убыток №{number}*\n\n"
+        f"🏢 ПАРК: `{d.get('park', '—').upper()}`\n"
+        f"🚗 МАРКА ТС: `{d.get('brand', '—').upper()}`\n"
+        f"🔢 ГОС.НОМЕР: `{d.get('grz', '—').upper()}`\n"
+        f"📄 ПОЛИС ОСАГО: `{d.get('policy', '—').upper()}`\n"
+        f"📅 ДАТА ДТП: `{d.get('date_dtp', '—')}`\n"
+        f"🏦 СК: `{d.get('insurance', '—').upper()}`\n"
+        f"📎 Фото: {len(photos)} шт."
+    )
+
+    await ctx.bot.send_message(chat_id, text, parse_mode="Markdown")
+
+    # Все фото одним блоком после текста
+    if photos:
+        media = []
+        for p in photos:
+            if p[0] == "photo":
+                media.append(InputMediaPhoto(media=p[1]))
+            elif p[0] == "doc":
+                media.append(InputMediaDocument(media=p[1]))
+        if media:
+            await ctx.bot.send_media_group(chat_id, media)
+
+    # Очищаем состояние
     ctx.user_data.pop(PHOTO_KEY, None)
     ctx.user_data.pop(LOSS_KEY, None)
     ctx.user_data.pop("photos", None)
 
-    keyboard = [[InlineKeyboardButton("📋 Новый убыток", web_app=WebAppInfo(url=WEBAPP_URL))]]
-
-    if photos:
-        text = (
-            f"✅ *Убыток №{number} оформлен!*\n"
-            f"📎 Прикреплено фото: {len(photos)} шт."
-        )
-    else:
-        text = f"✅ *Убыток №{number} оформлен!*"
-
-    await query.edit_message_text(text, parse_mode="Markdown",
-                                   reply_markup=InlineKeyboardMarkup(keyboard))
+    # Убираем кнопку из старого сообщения
+    await query.edit_message_reply_markup(reply_markup=None)
 
 
 # ── Запуск ───────────────────────────────────────────────────────────────────
