@@ -1,0 +1,17 @@
+# Секретные ключи — НИКОГДА не загружать в git
+credentials.json
+cloud_function/credentials.json
+config.py
+
+# Скомпилированные архивы
+function.zip
+*.zip
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.env
+
+# macOS
+.DS_Store

@@ -243,7 +243,10 @@
     document.getElementById('successNum').textContent = '#' + number;
     document.getElementById('successDetails').textContent =
       data.park + ' · ' + data.brand + ' · ' + data.grz + '\n' + data.date_dtp + ' · ' + data.insurance;
-    setTimeout(function() { if (tg) tg.close(); }, 3000);
+    // Уведомляем бота о номере убытка — он попросит фото
+    setTimeout(function() {
+      if (tg) tg.sendData(JSON.stringify({number: number}));
+    }, 1500);
   }
 
   function showError(msg) {
