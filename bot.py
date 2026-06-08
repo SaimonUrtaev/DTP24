@@ -61,7 +61,9 @@ async def web_app_data(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     try:
         data = json.loads(update.message.web_app_data.data)
         number = data.get("number", "?")
-    except Exception:
+    except Exception as e:
+        logger.error(f"web_app_data parse error: {e}")
+        await update.message.reply_text("❌ Ошибка при получении данных формы. Попробуйте ещё раз.")
         return
 
     ctx.user_data[PHOTO_KEY] = True
@@ -122,18 +124,20 @@ async def photos_done(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         f"📎 Фото: {len(photos)} шт."
     )
 
-    await ctx.bot.send_message(chat_id, text, parse_mode="Markdown")
-
-    # Все фото одним блоком после текста
-    if photos:
-        media = []
-        for p in photos:
-            if p[0] == "photo":
-                media.append(InputMediaPhoto(media=p[1]))
-            elif p[0] == "doc":
-                media.append(InputMediaDocument(media=p[1]))
-        if media:
-            await ctx.bot.send_media_group(chat_id, media)
+    try:
+        await ctx.bot.send_message(chat_id, text, parse_mode="Markdown")
+        if photos:
+            media = []
+            for p in photos:
+                if p[0] == "photo":
+                    media.append(InputMediaPhoto(media=p[1]))
+                elif p[0] == "doc":
+                    media.append(InputMediaDocument(media=p[1]))
+            if media:
+                await ctx.bot.send_media_group(chat_id, media)
+    except Exception as e:
+        logger.error(f"photos_done send error: {e}")
+        await ctx.bot.send_message(chat_id, "❌ Ошибка при отправке. Данные в таблице сохранены.")
 
     # Очищаем состояние
     ctx.user_data.pop(PHOTO_KEY, None)
