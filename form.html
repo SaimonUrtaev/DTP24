@@ -8,6 +8,8 @@
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+    html, body { background-color: #1c1c1e !important; color: #ffffff !important; }
+
     :root {
       --bg:        #1c1c1e;
       --card:      #2c2c2e;
@@ -249,17 +251,15 @@
 
 <script>
   // Инициализация Telegram WebApp
-  const tg = window.Telegram.WebApp;
-  tg.ready();
-  tg.expand();
+  const tg = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
+  if (tg) { tg.ready(); tg.expand(); }
 
   // Установить сегодняшнюю дату по умолчанию
   const today = new Date().toISOString().split('T')[0];
   document.getElementById('date_dtp').value = today;
 
   // URL вашей Яндекс Cloud Function (заполним позже)
-  const API_URL = 'https://functions.yandexcloud.net/d4eb16ss7geankm98het
-';
+  const API_URL = 'https://functions.yandexcloud.net/d4eb16ss7geankm98het';
 
   function validate() {
     const fields = [
@@ -326,7 +326,7 @@
     document.getElementById('successNum').textContent = `#${number}`;
     document.getElementById('successDetails').textContent =
       `${data.park} · ${data.brand} · ${data.grz}\n${data.date_dtp} · ${data.insurance}`;
-    setTimeout(() => tg.close(), 2500);
+    setTimeout(() => { if (tg) tg.close(); }, 2500);
   }
 
   function showError(msg) {
