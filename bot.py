@@ -4,6 +4,7 @@ Telegram Bot @DTP24_bot — Убыток дежурного
 """
 
 import logging
+import re
 import functools
 from telegram import (
     Update, InlineKeyboardButton, InlineKeyboardMarkup,
@@ -66,15 +67,22 @@ async def start_photos(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     ctx.user_data[LOSS_KEY]  = number
     ctx.user_data["photos"]  = []
 
-    # Убираем кнопки из исходного сообщения
+    # Извлекаем admin_note из текста уведомления Cloud Function
+    admin_note = ""
+    if query.message and query.message.text:
+        m = re.search(r"АДМИН МАТЕРИАЛ: `(.+?)`", query.message.text)
+        if m:
+            admin_note = m.group(1)
+    ctx.user_data["admin_note"] = admin_note
+
     await query.edit_message_reply_markup(reply_markup=None)
 
     keyboard = [[InlineKeyboardButton("✅ Готово (0 фото)", callback_data="photos_done")]]
-    await query.message.reply_text(
-        "📎 Отправляйте фото по одному.\n"
-        "Когда закончите — нажмите «Готово».",
+    msg = await query.message.reply_text(
+        "📎 Отправляйте фото.\nКогда закончите — нажмите «Готово».",
         reply_markup=InlineKeyboardMarkup(keyboard),
     )
+    ctx.user_data["done_msg_id"] = msg.message_id
 
 
 # ── Кнопка «Без фото» из уведомления ────────────────────────────────────────
@@ -109,14 +117,30 @@ async def receive_photo(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         photos.append(("doc", update.message.document.file_id))
 
     keyboard = [[InlineKeyboardButton(f"✅ Готово ({len(photos)} фото)", callback_data="photos_done")]]
-    await update.message.reply_text(
-        f"📎 Получено: *{len(photos)}* фото. Отправьте ещё или нажмите «Готово».",
-        parse_mode="Markdown",
-        reply_markup=InlineKeyboardMarkup(keyboard),
-    )
+    text = f"📎 Получено: *{len(photos)}* фото. Отправьте ещё или нажмите «Готово»."
+
+    done_msg_id = ctx.user_data.get("done_msg_id")
+    if done_msg_id:
+        try:
+            await ctx.bot.edit_message_text(
+                chat_id=update.effective_chat.id,
+                message_id=done_msg_id,
+                text=text,
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup(keyboard),
+            )
+        except Exception as e:
+            logger.warning(f"edit_message_text failed: {e}")
+    else:
+        msg = await update.message.reply_text(
+            text,
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup(keyboard),
+        )
+        ctx.user_data["done_msg_id"] = msg.message_id
 
 
-# ── Кнопка «Готово» — текст + фото одним блоком ─────────────────────────────
+# ── Кнопка «Готово» — карточка + фото одним альбомом ────────────────────────
 async def photos_done(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -124,9 +148,10 @@ async def photos_done(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id not in ALLOWED_USERS:
         return
 
-    photos  = ctx.user_data.get("photos", [])
-    number  = ctx.user_data.get(LOSS_KEY, "?")
-    chat_id = update.effective_chat.id
+    photos     = ctx.user_data.get("photos", [])
+    number     = ctx.user_data.get(LOSS_KEY, "?")
+    admin_note = ctx.user_data.get("admin_note", "")
+    chat_id    = update.effective_chat.id
 
     # Получаем данные убытка из таблицы
     row_data = {}
@@ -154,20 +179,24 @@ async def photos_done(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         f"📄 ПОЛИС ОСАГО: `{row_data.get('policy', '—')}`\n"
         f"📅 ДАТА ДТП: `{row_data.get('date_dtp', '—')}`\n"
         f"🏦 СК: `{row_data.get('insurance', '—')}`\n"
-        f"📎 Фото: {len(photos)} шт."
     )
+    if admin_note:
+        text += f"📝 АДМИН МАТЕРИАЛ: `{admin_note}`\n"
+    text += f"📎 Фото: {len(photos)} шт."
 
     try:
-        await ctx.bot.send_message(chat_id, text, parse_mode="Markdown")
         if photos:
             media = []
-            for p in photos:
+            for i, p in enumerate(photos):
+                cap = text if i == 0 else None
+                pm  = "Markdown" if cap else None
                 if p[0] == "photo":
-                    media.append(InputMediaPhoto(media=p[1]))
+                    media.append(InputMediaPhoto(media=p[1], caption=cap, parse_mode=pm))
                 elif p[0] == "doc":
-                    media.append(InputMediaDocument(media=p[1]))
-            if media:
-                await ctx.bot.send_media_group(chat_id, media)
+                    media.append(InputMediaDocument(media=p[1], caption=cap, parse_mode=pm))
+            await ctx.bot.send_media_group(chat_id, media)
+        else:
+            await ctx.bot.send_message(chat_id, text, parse_mode="Markdown")
     except Exception as e:
         logger.error(f"Ошибка отправки итога: {e}")
         await ctx.bot.send_message(
@@ -179,8 +208,9 @@ async def photos_done(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     ctx.user_data.pop(PHOTO_KEY, None)
     ctx.user_data.pop(LOSS_KEY, None)
     ctx.user_data.pop("photos", None)
+    ctx.user_data.pop("done_msg_id", None)
+    ctx.user_data.pop("admin_note", None)
 
-    # Убираем кнопку из последнего сообщения
     await query.edit_message_reply_markup(reply_markup=None)
 
 

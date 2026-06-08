@@ -54,6 +54,7 @@ def notify_user(chat_id, number: int, data: dict):
     if not BOT_TOKEN or not chat_id:
         return
 
+    admin_note = data.get("admin_note", "").strip()
     text = (
         f"✅ *Убыток №{number} записан!*\n\n"
         f"🏢 ПАРК: `{data.get('park', '—').upper()}`\n"
@@ -61,9 +62,11 @@ def notify_user(chat_id, number: int, data: dict):
         f"🔢 ГОС.НОМЕР: `{data.get('grz', '—').upper()}`\n"
         f"📄 ПОЛИС ОСАГО: `{data.get('policy', '—').upper()}`\n"
         f"📅 ДАТА ДТП: `{data.get('date_dtp', '—')}`\n"
-        f"🏦 СК: `{data.get('insurance', '—').upper()}`\n\n"
-        f"📎 Отправьте фото: место ДТП, СТС, полис, материалы."
+        f"🏦 СК: `{data.get('insurance', '—').upper()}`\n"
     )
+    if admin_note:
+        text += f"📝 АДМИН МАТЕРИАЛ: `{admin_note}`\n"
+    text += "\n📎 Отправьте фото: место ДТП, СТС, полис, материалы."
     keyboard = {
         "inline_keyboard": [
             [{"text": "📎 Прикрепить фото",      "callback_data": f"start_photos_{number}"}],

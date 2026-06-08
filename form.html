@@ -149,6 +149,13 @@
   </div>
 
   <div class="card">
+    <div class="field" id="f-admin">
+      <label>Админ материал</label>
+      <input type="text" id="admin_note" placeholder="Заполняется вручную" autocomplete="off" />
+    </div>
+  </div>
+
+  <div class="card">
     <div class="field">
       <label>Фото и документы</label>
       <div style="font-size:14px; color:#8e8e93; padding: 2px 0;">
@@ -213,13 +220,14 @@
     hideError();
 
     const data = {
-      park:      document.getElementById('park').value.trim(),
-      brand:     document.getElementById('brand').value.trim(),
-      grz:       document.getElementById('grz').value.trim().toUpperCase(),
-      policy:    document.getElementById('policy').value.trim(),
-      date_dtp:  document.getElementById('date_dtp').value.trim(),
-      insurance: document.getElementById('insurance').value,
-      user_id:   (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) ? tg.initDataUnsafe.user.id : null,
+      park:       document.getElementById('park').value.trim(),
+      brand:      document.getElementById('brand').value.trim(),
+      grz:        document.getElementById('grz').value.trim().toUpperCase(),
+      policy:     document.getElementById('policy').value.trim(),
+      date_dtp:   document.getElementById('date_dtp').value.trim(),
+      insurance:  document.getElementById('insurance').value,
+      admin_note: document.getElementById('admin_note').value.trim(),
+      user_id:    (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) ? tg.initDataUnsafe.user.id : null,
     };
 
     try {
