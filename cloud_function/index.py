@@ -31,16 +31,21 @@ def get_next_number(sheet) -> int:
 
 
 def format_new_row(sheet, row_num: int):
-    range_notation = f"A{row_num}:AA{row_num}"
-    sheet.format(range_notation, {
-        "borders": {
-            "top":    {"style": "SOLID", "width": 1},
-            "bottom": {"style": "SOLID", "width": 1},
-            "left":   {"style": "SOLID", "width": 1},
-            "right":  {"style": "SOLID", "width": 1},
-        },
-        "textFormat": {"fontSize": 10},
+    border = {"style": "SOLID", "width": 1}
+    cell_fmt = {
+        "borders": {"top": border, "bottom": border, "left": border, "right": border},
+        "textFormat": {"bold": False, "fontSize": 10},
         "verticalAlignment": "MIDDLE",
+        "horizontalAlignment": "LEFT",
+    }
+    # Вся строка
+    sheet.format(f"A{row_num}:AA{row_num}", cell_fmt)
+    # Столбец № — жирный и по центру как в шаблоне
+    sheet.format(f"A{row_num}", {
+        "borders": {"top": border, "bottom": border, "left": border, "right": border},
+        "textFormat": {"bold": True, "fontSize": 10},
+        "verticalAlignment": "MIDDLE",
+        "horizontalAlignment": "CENTER",
     })
 
 
