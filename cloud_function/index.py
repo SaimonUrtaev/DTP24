@@ -118,7 +118,7 @@ def send_photos(chat_id, number: int, data: dict, photos_b64: list):
         f"https://api.telegram.org/bot{BOT_TOKEN}/sendMediaGroup",
         data={"chat_id": int(chat_id), "media": json.dumps(media)},
         files=files,
-        timeout=60,
+        timeout=8,
     )
     resp.raise_for_status()
 
@@ -159,7 +159,11 @@ def handler(event, context):
             chat_id = body.get("user_id") or CHAT_ID
             photos = body.get("photos") or []
             if photos:
-                send_photos(chat_id, number, body, photos)
+                try:
+                    send_photos(chat_id, number, body, photos)
+                except Exception as e:
+                    print(f"send_photos error: {e}")
+                    notify_user(chat_id, number, body)
             else:
                 notify_user(chat_id, number, body)
         except Exception as e:
