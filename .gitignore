@@ -1,6 +1,7 @@
 # Секретные ключи — НИКОГДА не загружать в git
 credentials.json
 cloud_function/credentials.json
+authorized_key.json
 config.py
 
 # Скомпилированные архивы
@@ -11,6 +12,7 @@ function.zip
 __pycache__/
 *.pyc
 *.pyo
+*.pickle
 .env
 
 # Claude Code служебные файлы

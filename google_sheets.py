@@ -25,12 +25,17 @@ HEADERS = [
 _sheet_cache = None
 
 
+def reset_sheet_cache():
+    global _sheet_cache
+    _sheet_cache = None
+
+
 def _get_sheet():
     global _sheet_cache
     if _sheet_cache is not None:
         return _sheet_cache
     creds = Credentials.from_service_account_file(GOOGLE_CREDENTIALS_FILE, scopes=SCOPES)
-    client = gspread.authorize(creds)
+    client = gspread.Client(auth=creds)
     spreadsheet = client.open_by_key(SPREADSHEET_ID)
     try:
         sheet = spreadsheet.worksheet(SHEET_NAME)
