@@ -95,6 +95,39 @@
       vertical-align: middle; margin-right: 8px;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Загрузка фото ── */
+    .photo-drop {
+      border: 2px dashed var(--border); border-radius: 12px;
+      padding: 20px 16px; text-align: center; cursor: pointer;
+      transition: border-color 0.2s;
+    }
+    .photo-drop:active { border-color: var(--blue); }
+    .photo-drop-icon { font-size: 32px; margin-bottom: 6px; }
+    .photo-drop-text { font-size: 15px; color: var(--text); font-weight: 500; }
+    .photo-drop-hint { font-size: 12px; color: var(--hint); margin-top: 3px; }
+
+    .photo-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 8px; margin-top: 12px;
+    }
+    .photo-thumb {
+      position: relative; aspect-ratio: 1;
+      border-radius: 10px; overflow: hidden; background: #3a3a3c;
+    }
+    .photo-thumb img {
+      width: 100%; height: 100%; object-fit: cover; display: block;
+    }
+    .photo-thumb-remove {
+      position: absolute; top: 4px; right: 4px;
+      width: 22px; height: 22px; border-radius: 50%;
+      background: rgba(0,0,0,0.6); border: none;
+      color: #fff; font-size: 14px; line-height: 1;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+    }
+    .photo-count {
+      font-size: 13px; color: var(--hint); margin-top: 8px; text-align: center;
+    }
   </style>
 </head>
 <body>
@@ -158,9 +191,15 @@
   <div class="card">
     <div class="field">
       <label>Фото и документы</label>
-      <div style="font-size:14px; color:#8e8e93; padding: 2px 0;">
-        📎 После записи отправьте фото напрямую боту @DTP24_bot
+      <div class="photo-drop" id="photoDrop" onclick="document.getElementById('photoInput').click()">
+        <div class="photo-drop-icon">📷</div>
+        <div class="photo-drop-text">Нажмите чтобы добавить фото</div>
+        <div class="photo-drop-hint">Место ДТП, СТС, полис, материалы</div>
       </div>
+      <input type="file" id="photoInput" accept="image/*" multiple
+             style="display:none" onchange="handlePhotos(this.files)" />
+      <div class="photo-grid" id="photoGrid"></div>
+      <div class="photo-count" id="photoCount"></div>
     </div>
   </div>
 
@@ -180,6 +219,74 @@
   if (tg) { tg.ready(); tg.expand(); }
 
   const API_URL = 'https://functions.yandexcloud.net/d4eb16ss7geankm98het';
+
+  // ── Фото ────────────────────────────────────────────────────────────────────
+  const MAX_PHOTOS = 10;
+  const selectedPhotos = []; // [{dataUrl, name}]
+
+  async function compressImage(file) {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const MAX_W = 1280;
+          let w = img.width, h = img.height;
+          if (w > MAX_W) { h = Math.round(h * MAX_W / w); w = MAX_W; }
+          const canvas = document.createElement('canvas');
+          canvas.width = w; canvas.height = h;
+          canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+          canvas.toBlob((blob) => {
+            const r = new FileReader();
+            r.onload = (e2) => resolve({ dataUrl: e2.target.result, name: file.name });
+            r.readAsDataURL(blob);
+          }, 'image/jpeg', 0.82);
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function handlePhotos(files) {
+    const available = MAX_PHOTOS - selectedPhotos.length;
+    if (available <= 0) return;
+    const toAdd = Array.from(files).slice(0, available);
+    for (const file of toAdd) {
+      const compressed = await compressImage(file);
+      selectedPhotos.push(compressed);
+    }
+    renderPhotoGrid();
+  }
+
+  function renderPhotoGrid() {
+    const grid = document.getElementById('photoGrid');
+    const count = document.getElementById('photoCount');
+    grid.innerHTML = '';
+    selectedPhotos.forEach((p, i) => {
+      const thumb = document.createElement('div');
+      thumb.className = 'photo-thumb';
+      thumb.innerHTML =
+        '<img src="' + p.dataUrl + '" />' +
+        '<button class="photo-thumb-remove" onclick="removePhoto(' + i + ')">✕</button>';
+      grid.appendChild(thumb);
+    });
+    if (selectedPhotos.length > 0) {
+      count.textContent = 'Выбрано: ' + selectedPhotos.length + ' из ' + MAX_PHOTOS;
+      document.getElementById('photoDrop').style.display =
+        selectedPhotos.length < MAX_PHOTOS ? 'block' : 'none';
+    } else {
+      count.textContent = '';
+      document.getElementById('photoDrop').style.display = 'block';
+    }
+    // Сбрасываем input чтобы можно было добавить те же файлы повторно
+    document.getElementById('photoInput').value = '';
+  }
+
+  function removePhoto(index) {
+    selectedPhotos.splice(index, 1);
+    renderPhotoGrid();
+  }
 
   // Автоформат ДД.ММ.ГГГГ
   document.getElementById('date_dtp').addEventListener('input', function(e) {
@@ -219,6 +326,10 @@
     btn.innerHTML = '<span class="loader"></span>Сохраняем...';
     hideError();
 
+    if (selectedPhotos.length > 0) {
+      btn.innerHTML = '<span class="loader"></span>Отправляю фото...';
+    }
+
     const data = {
       park:       document.getElementById('park').value.trim(),
       brand:      document.getElementById('brand').value.trim(),
@@ -228,6 +339,7 @@
       insurance:  document.getElementById('insurance').value,
       admin_note: document.getElementById('admin_note').value.trim(),
       user_id:    (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) ? tg.initDataUnsafe.user.id : null,
+      photos:     selectedPhotos.map(p => p.dataUrl),
     };
 
     try {
@@ -250,8 +362,9 @@
     document.getElementById('formView').style.display = 'none';
     document.getElementById('successView').classList.add('show');
     document.getElementById('successNum').textContent = '#' + number;
+    const photoLine = data.photos.length > 0 ? '\n📎 Фото: ' + data.photos.length + ' шт.' : '';
     document.getElementById('successDetails').textContent =
-      data.park + ' · ' + data.brand + ' · ' + data.grz + '\n' + data.date_dtp + ' · ' + data.insurance;
+      data.park + ' · ' + data.brand + ' · ' + data.grz + '\n' + data.date_dtp + ' · ' + data.insurance + photoLine;
     // Закрываем форму — бот получит уведомление через Cloud Function
     setTimeout(function() {
       if (tg) tg.close();
