@@ -19,7 +19,7 @@ $YC serverless function version create \
   --runtime python312 \
   --entrypoint index.handler \
   --memory 128m \
-  --execution-timeout 10s \
+  --execution-timeout 20s \
   --source-path function.zip \
   --environment BOT_TOKEN="$BOT_TOKEN",SPREADSHEET_ID="$SPREADSHEET_ID",SHEET_NAME="$SHEET_NAME",CHAT_ID="$ALLOWED_USERS"
 
